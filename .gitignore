@@ -1,0 +1,53 @@
+# R / RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Rproj
+
+# renv
+renv/library/
+renv/staging/
+.packrat/
+.Rprofile
+
+# Quarto / knitr
+*_cache/
+cache/
+*.utf8.md
+*.knit.md
+*.nb.html
+*.log
+
+# CmdStan/build artifacts
+cmdstan-*
+*.hpp
+*.exe
+*.dSYM/
+*.o
+*.so
+*.dll
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Project outputs (regenerate-able)
+analysis/outputs/*.rds
+analysis/outputs/*.csv
+analysis/outputs/*.pdf
+analysis/outputs/*.png
+analysis/outputs/*.html
+analysis/outputs/*.rtf
+
+# Large raw files (keep only if essential and <100MB)
+analysis/data/raw/*.zip
+analysis/data/raw/*.tar
+analysis/data/raw/*.7z
+
+# Python / misc (念のため)
+__pycache__/
+.ipynb_checkpoints/
+
+/.quarto/
+**/*.quarto_ipynb
