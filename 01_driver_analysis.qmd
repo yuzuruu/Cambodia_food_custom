@@ -1,0 +1,23 @@
+---
+title: "Food customs (Cambodia) — Analysis Driver"
+format:
+  html: default
+  pdf: default
+execute:
+  echo: true
+  warning: false
+  message: false
+editor: source
+---
+
+\`\`\`{r} \# 00 \| setup ---- set.seed(2025) options(mc.cores = max(1, parallel::detectCores() - 1), brms.backend = "cmdstanr") here::i_am("analysis/01_driver_analysis.qmd")
+
+# package load
+
+pkgs \<- c("tidyverse","readxl","janitor","GGally","sf", "brms","cmdstanr","broom.mixed","gtsummary","here") invisible(lapply(pkgs, require, character.only = TRUE))
+
+# project paths
+
+PATH_XLSX \<- here::here("analysis","data","raw","rawfish_eat_Cambodia_2020_2022.xlsx") 
+PATH_SHP \<- here::here("analysis","data","raw","KHM_adm","KHM_adm4.shp") 
+OUT_DIR \<- here::here("analysis","outputs") dir.create(OUT_DIR, showWarnings = FALSE, recursive = TRUE)
