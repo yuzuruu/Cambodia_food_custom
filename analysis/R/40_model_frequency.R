@@ -233,7 +233,7 @@ fit_frequency_season_occ <- function(
   
   # ---- priors & formula (NO interaction) ----
   pri <- c(
-    prior(normal(0, 1), class = "b"),
+    prior(normal(0, 1.5), class = "b"),
     prior(normal(0, 2.5), class = "Intercept"),
     prior(gamma(0.01, 0.01), class = "shape")   # 過分散
   )
@@ -263,8 +263,8 @@ fit_frequency_season_occ <- function(
     family = negbinomial(),
     prior  = pri,
     chains = 4, iter = 4000, warmup = 2000,
-    control = list(adapt_delta = 0.95, max_treedepth = 12),
-    seed = 2025, refresh = 0
+    control = list(adapt_delta = 0.97, max_treedepth = 12),
+    seed = 123, refresh = 0
   )
   
   saveRDS(fit, file.path(out_dir, "fit_frequency_season_occ.rds"))

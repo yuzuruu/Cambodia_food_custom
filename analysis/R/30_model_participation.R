@@ -78,7 +78,7 @@ fit_participation <- function(
   
   # ---- priors ----
   pri <- c(
-    prior(normal(0, 1), class = "b"),
+    prior(normal(0, 1.5), class = "b"),
     prior(normal(0, 2.5), class = "Intercept"),
     prior(student_t(3, 0, 2.5), class = "sd")
   )
@@ -130,8 +130,8 @@ fit_participation <- function(
     family  = bernoulli(link = "logit"),
     prior   = pri,
     chains  = 4, iter = 4000, warmup = 2000,
-    control = list(adapt_delta = 0.95, max_treedepth = 12),
-    seed    = 2025,
+    control = list(adapt_delta = 0.99, max_treedepth = 15),
+    seed    = 123,
     refresh = 0
   )
   

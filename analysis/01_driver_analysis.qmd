@@ -8,35 +8,13 @@ execute:
   echo: false         # 既定でコード非表示
   warning: false      # 警告も非表示
   message: false      # メッセージも非表示
-  cache: TRUE         # 計算をキャッシュ
+  cache: FALSE         # 計算をキャッシュ
 editor: source
 ---
 
 
 
 ```{r setup}
-# --- in setup chunk ---
-# --- in setup chunk ---
-get_sha <- function(short = TRUE) {
-  cmd <- if (short) "git rev-parse --short HEAD" else "git rev-parse HEAD"
-  tryCatch(system(cmd, intern = TRUE), error = function(e) NA_character_)
-}
-SHA <- get_sha()
-message("Git SHA = ", SHA)
-
-# メタデータとしても保存（再現性ログ）
-dir.create(here::here("analysis","outputs"), showWarnings = FALSE, recursive = TRUE)
-jsonlite::write_json(
-  list(
-    git_sha = SHA,
-    timestamp = as.character(Sys.time()),
-    R = as.character(getRversion()),
-    renv_lock = digest::digest(file = here::here("renv.lock"))
-  ),
-  here::here("analysis","outputs","analysis_metadata.json"),
-  auto_unbox = TRUE, pretty = TRUE
-)
-
 # 00 | setup ----
 set.seed(2025)
 options(
