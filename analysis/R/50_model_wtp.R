@@ -135,7 +135,7 @@ fit_wtp_model <- function(
     form <- bf(as.formula(paste("log_p ~", rhs)))
     fam  <- student()
     pri  <- c(
-      prior(normal(0, 1),  class = "b"),
+      prior(normal(0, 1.5),  class = "b"),
       prior(normal(0, 2.5),class = "Intercept"),
       prior(student_t(3, 0, 2.5), class = "sigma"),
       prior(student_t(3, 0, 2.5), class = "nu")
@@ -144,7 +144,7 @@ fit_wtp_model <- function(
     form <- bf(as.formula(paste("price_per_100g ~", rhs)))
     fam  <- lognormal()
     pri  <- c(
-      prior(normal(0, 1),  class = "b"),
+      prior(normal(0, 1.5),  class = "b"),
       prior(normal(0, 2.5),class = "Intercept"),
       prior(exponential(1), class = "sigma")  # >0 を素直に
     )
@@ -171,8 +171,8 @@ fit_wtp_model <- function(
     cores   = as.integer(cores),
     backend = backend,
     threads = threads_arg,
-    control = list(adapt_delta = 0.95, max_treedepth = 12),
-    seed    = 2025, refresh = 0
+    control = list(adapt_delta = 0.99, max_treedepth = 15),
+    seed    = 123, refresh = 0
   )
   
   saveRDS(fit, file.path(out_dir, paste0("fit_wtp_", family, ".rds")))

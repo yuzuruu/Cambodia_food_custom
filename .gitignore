@@ -4,6 +4,7 @@
 .RData
 .Ruserdata
 .Rproj
+.Renviron
 
 # renv
 renv/library/

@@ -1,17 +1,16 @@
 ---
-title: "Food customs (Cambodia) — Analysis Driver"
+title: "Food customs (Cambodia): Analysis Driver"
 format:
   html:
     toc: true
-    code-fold: false   # コード折りたたみはオフ（完全に隠す方針）
+    code-fold: false
 execute:
-  echo: false         # 既定でコード非表示
-  warning: false      # 警告も非表示
-  message: false      # メッセージも非表示
-  cache: FALSE         # 計算をキャッシュ
+  echo: false
+  warning: false
+  message: false
+  cache: FALSE
 editor: source
 ---
-
 
 
 ```{r setup}
@@ -56,406 +55,170 @@ pca_out  <- make_pca(dat, out_dir = OUT_DIR, quick = QUICK, dry_run = FALSE)
 long     <- pca_out$long
 ```
 
-```{r participation.31}
-# 必須列チェック（月は不要）
-
-needed <- c("id","district","gender","age_z","novelty_z",
-"experience_z","tradition_z","dish_type","consumed")
-missing <- setdiff(needed, names(long))
-if (length(missing)) {
-stop("long に必須列が不足しています: ", paste(missing, collapse=", "))
-}
-
-# 参加モデル（month/season 不使用）の読み込み
-
-src_part <- here::here("analysis","R","31_model_participation.R")
-if (!file.exists(src_part)) stop("モデル定義ファイルが見つかりません: ", src_part)
-source(src_part)
-
-# ===== 交互作用・全部入り版 =====
-
-fit <- fit_participation_interactions(
-long,
-out_dir = OUT_DIR,
-quick = FALSE,
-use_monotonic = TRUE,      # q022_ord があれば mo() を使用（無ければ自動スキップ）
-use_q022_cat5 = FALSE,     # 感度を見たい時は TRUE に
-interact_q022_dish = TRUE, # q022 × dish_type の交互作用も入れる
-random_slope = TRUE        # (1 + dish_type | district)
+```{r participation, include = FALSE}
+# 30_model_participation.R を読み込む
+source(here::here("analysis","R","30_model_participation.R"))
+# 参加モデルの実行（本番）
+fit_part <- fit_participation(
+  long        = long,
+  out_dir     = OUT_DIR,
+  quick       = QUICK,          # テスト時だけ TRUE
+  dry_run     = FALSE,
+  use_monotonic     = TRUE,     # q022_ord があれば mo() を使う
+  use_q022_cat5     = FALSE,    # 使うなら TRUE
+  interact_q022_dish= FALSE,    # 交互作用は使わない方針
+  random_slope      = FALSE     # (1|district)；傾きは欲張らない
 )
 
-# （参考）主効果のみ版を使いたい場合は下を有効化
-
-# fit <- fit_participation(
-
-# long,
-
-# out_dir = OUT_DIR,
-
-# quick = FALSE,
-
-# use_monotonic = TRUE,
-
-# use_q022_cat5 = FALSE,
-
-# interact_q022_dish = FALSE, # 主効果のみ
-
-# random_slope = TRUE         # (1 + dish_type | district) にしたくなければ FALSE
-
-# )
+print(fit_part)
 ```
 
-<!-- ```{r frequency.41} -->
-<!-- # ---- prep: build long_freq from `long` -------------------------------------- -->
-<!-- # 必要列: district, gender, age_z, novelty_z, experience_z, tradition_z, dish_type, -->
-<!-- # season(dry/rainy), occasion(home/party), frequency -->
-<!-- # frequency 列名を推定（最初に見つかったものを使用） -->
-
-<!-- freq_col <- intersect(c("frequency","freq","n_times","count"), names(long)) -->
-<!-- if (length(freq_col) == 0) stop("頻度列が見つかりません（frequency/freq/n_times/count など）。") -->
-<!-- freq_col <- freq_col[1] -->
-
-<!-- # month→season の補助（必要に応じて現地定義へ調整） -->
-
-<!-- mk_season <- function(month_chr) { -->
-<!-- rainy <- c("May","Jun","Jul","Aug","Sep","Oct","5","6","7","8","9","10") -->
-<!-- ifelse(month_chr %in% rainy, "rainy", "dry") -->
-<!-- } -->
-
-
-
-
-<!-- long_freq <- long %>% -->
-<!-- mutate( -->
-<!-- season = if ("season" %in% names(.)) as.character(season) -->
-<!-- else if ("month" %in% names(.)) mk_season(as.character(month)) -->
-<!-- else NA_character_, -->
-<!-- occasion = if ("occasion" %in% names(.)) as.character(occasion) else "home" -->
-<!-- ) %>% -->
-<!-- transmute( -->
-<!-- district = district, -->
-<!-- gender = gender, -->
-<!-- age_z, novelty_z, experience_z, tradition_z, -->
-<!-- dish_type, -->
-<!-- season = factor(season, levels = c("dry","rainy")), -->
-<!-- occasion = factor(occasion, levels = c("home","party")), -->
-<!-- frequency = suppressWarnings(as.numeric(.data[[freq_col]])), -->
-<!-- livelihood_ord = if ("livelihood_ord" %in% names(.)) livelihood_ord else NA -->
-<!-- ) %>% -->
-<!-- filter(!is.na(frequency)) -->
-
-
-
-
-<!-- stopifnot(nrow(long_freq) > 0) -->
-
-<!-- # 全部入り（推奨） -->
-<!-- source(here::here("analysis","R","41_model_frequency.R")) -->
-<!-- fit_freq <- fit_frequency_x( -->
-<!--   long_freq, out_dir = OUT_DIR, -->
-<!--   use_livelihood_mo = TRUE, # 生業 ordinal があれば mo() 主効果で -->
-<!--   interact_liv_season = TRUE, # 交互作用は因子版で安全に -->
-<!--   random_slope_set = c("season"), # サブセットで1水準なら自動で外れます -->
-<!--   adapt_delta = 0.97 -->
-<!-- ) -->
-<!-- ``` -->
-
-<!-- ```{r nonconsumption.36} -->
-<!-- # 50 | 食べない理由：データ用意 ---- -->
-<!-- # 既に 10_load_clean.R 側で dat_raw を返していない想定なので、Excel から読みます。 -->
-<!-- # （もし load_and_clean() が dat_raw を返すなら、それを使ってOK） -->
-<!-- PATH_XLSX <- here::here("analysis","data","raw","rawfish_eat_Cambodia_2020_2022.xlsx") -->
-
-<!-- # 必要なのは q131/q231/q331 を含むシート（例: "food_custom"） -->
-
-
-
-<!-- dat_raw <- readxl::read_excel(PATH_XLSX, sheet = "food_custom", col_names = TRUE) -->
-
-<!-- # 型の取り回しを安定化 -->
-
-
-
-<!-- dat_raw <- dat_raw |> -->
-<!-- janitor::clean_names() -->
-
-<!-- # 51 | reasons_long を作る ---- -->
-
-<!-- source(here::here("analysis","R","36_reasons_nonconsumption.R")) -->
-
-<!-- # q131/q231/q331 → dish_type×reason_cat のロングに -->
-
-<!-- reasons_long <- extract_reasons_from_raw(dat_raw) -->
-
-<!-- # long 側も id を文字に（joinの安全策） -->
-
-<!-- long <- long |> dplyr::mutate(id = as.character(id)) -->
-
-<!-- # 52 | 多項ロジット（交互作用入り・堅牢版）をフィット ---- -->
-
-<!-- fit_reasons <- fit_reason_model_x( -->
-<!--   long, reasons_long, -->
-<!--   out_dir = OUT_DIR, -->
-<!--   quick = FALSE,            # 速度確認なら TRUE -->
-<!--   pool_threshold = 15,      # 希少カテゴリは "other" にプール -->
-<!--   add_interactions = TRUE,  # dish×gender, dish×(novelty,tradition), gender×tradition -->
-<!--   adapt_delta = 0.97 -->
-<!--   ) -->
-<!-- ``` -->
-
-<!-- ```{r wtp, include=FALSE} -->
-<!-- library(tidyverse) -->
-
-<!-- message("OUT_DIR = ", OUT_DIR) -->
-<!-- if (file.exists(OUT_DIR) && !dir.exists(OUT_DIR)) stop("OUT_DIR が“ファイル”です: ", OUT_DIR) -->
-<!-- if (!dir.exists(OUT_DIR)) dir.create(OUT_DIR, recursive = TRUE) -->
-<!-- # 1) CSV を読み込み → wtp を作成 -->
-
-
-<!-- wtp_csv <- here::here("analysis","outputs","wtp_data.csv") -->
-<!-- if (!file.exists(wtp_csv)) stop("wtp_data.csv が見つかりません: ", wtp_csv) -->
-<!-- wtp <- readr::read_csv(wtp_csv, show_col_types = FALSE) -->
-<!-- stopifnot(is.data.frame(wtp), "price" %in% names(wtp)) -->
-
-<!-- # 必須列の存在チェック（今回は dish_type と season を使う） -->
-<!-- needed <- c("price","dish_type","season") -->
-<!-- missing <- setdiff(needed, names(wtp)) -->
-<!-- if (length(missing)) stop("WTPデータに不足列があります: ", paste(missing, collapse=", ")) -->
-
-<!-- # 型整備とフィルタ（完全ケース） -->
-
-
-
-<!-- wtp <- wtp %>% -->
-<!-- transmute( -->
-<!-- price = suppressWarnings(as.numeric(price)), -->
-<!-- dish_type = as.factor(dish_type), -->
-<!-- season = as.factor(season) -->
-<!-- ) %>% -->
-<!-- filter(!is.na(price), price > 0) %>% -->
-<!-- filter(complete.cases(price, dish_type, season)) -->
-
-<!-- if (nrow(wtp) == 0) stop("WTP: 完全ケースが 0 行です（price / dish_type / season を確認）") -->
-<!-- if (n_distinct(wtp$dish_type) < 2) stop("dish_type の水準が 1 つしかありません。") -->
-<!-- if (n_distinct(wtp$season) < 2) stop("season の水準が 1 つしかありません。") -->
-
-<!-- # 2) モデル関数を読み込み（51_model_wtp.R を使用） -->
-
-
-
-<!-- src <- here::here("analysis","R","51_model_wtp.R") -->
-<!-- if (!file.exists(src)) stop("モデル定義ファイルが見つかりません: ", src) -->
-<!-- source(src) -->
-<!-- source(here::here("analysis","R","51_model_wtp.R")) -->
-
-<!-- fit <- fit_wtp_model_x( -->
-<!--   wtp, -->
-<!--   out_dir = OUT_DIR, -->
-<!--   fam_name = "lognormal",   # ← ここ -->
-<!--   random_slopes = c(),      # 今回は dish_type と season だけなら空でもOK -->
-<!--   add_youme_month_interact = FALSE -->
-<!-- ) -->
-
-<!-- ``` -->
-
-
-
-
-
-
-
-
-
-
-<!-- ```{r participation, include=FALSE} -->
-<!-- # extensive margins -->
-<!-- source(here::here("analysis","R","30_model_participation.R")) -->
-
-<!-- # 主解析（mo; unknown除外） -->
-<!-- fit_part <- fit_participation( -->
-<!--   long, out_dir = OUT_DIR, quick = FALSE, -->
-<!--   use_monotonic = TRUE, use_q022_cat5 = FALSE, -->
-<!--   interact_q022_dish = FALSE, random_slope = FALSE -->
-<!-- ) -->
-
-<!-- # 感度（5カテゴリ） -->
-<!-- # fit_part_5 <- fit_participation( -->
-<!-- #   long, out_dir = OUT_DIR, quick = FALSE, -->
-<!-- #   use_monotonic = FALSE, use_q022_cat5 = TRUE, -->
-<!-- #   interact_q022_dish = FALSE, random_slope = FALSE -->
-<!-- # ) -->
-<!-- ``` -->
-
-<!-- ```{r nonconsumption, include=FALSE} -->
-<!-- # --- 食べない理由（nonconsumption） ------------------------- -->
-<!-- library(brms) -->
-<!-- source(here::here("analysis","R","35_reasons_nonconsumption.R")) -->
-
-<!-- # dat_raw を用意（10_load_clean.R が返していない場合をカバー） -->
-<!-- if (!exists("dat_raw")) { -->
-<!--   dat_raw <- readxl::read_excel( -->
-<!--     PATH_XLSX, sheet = "food_custom", col_names = TRUE -->
-<!--   ) -->
-<!-- } -->
-<!-- # join 事故を避けるための型整備 -->
-<!-- dat_raw <- dat_raw |> -->
-<!--   janitor::clean_names() |> -->
-<!--   dplyr::mutate(id = as.character(id)) -->
-
-<!-- # 理由ロングを作成 -->
-<!-- reasons_long <- extract_reasons_from_raw(dat_raw) |> -->
-<!--   dplyr::mutate(id = as.character(id)) -->
-
-<!-- # long 側も id を文字に（型を揃える） -->
-<!-- # long 側も id を文字に（型を揃える） -->
-<!-- long <-  -->
-<!--   long |> -->
-<!--   dplyr::mutate(id = as.character(id)) -->
-
-<!-- # （任意）保険：season/occasion が無ければ作る -->
-<!-- if (!"season"   %in% names(long)) long$season   <- NA_character_ -->
-<!-- if (!"occasion" %in% names(long)) long$occasion <- NA_character_ -->
-
-
-
-<!-- # 推定（記述と多項ロジット、図表ファイルが OUT_DIR に出力） -->
-<!-- fit_reasons <- fit_reason_model(long, reasons_long, out_dir = OUT_DIR, quick = FALSE) -->
-
-
-<!-- ``` -->
-
-<!-- ```{r intensive, include=FALSE} -->
-<!-- # intensive margins -->
-<!-- source(here::here("analysis","R","40_model_frequency.R")) -->
-
-<!-- # ---- load dat_scored (wide; contains q112/q113/... ) ---- -->
-<!-- # 既に保存済みなら RDS から、無ければ Excel から読み込み -->
-<!-- dat_scored <- tryCatch( -->
-<!--   readr::read_rds(here::here("analysis","outputs","dat_scored.rds")), -->
-<!--   error = function(e) { -->
-<!--     readxl::read_excel( -->
-<!--       path = PATH_XLSX,        # 例: analysis/data/raw/rawfish_eat_Cambodia_2020_2022.xlsx -->
-<!--       sheet = "food_custom", -->
-<!--       col_names = TRUE -->
-<!--     ) -->
-<!--   } -->
-<!-- ) -->
-
-<!-- # 必須キーを文字列に統一（joinトラブル回避） -->
-<!-- dat_scored <- dat_scored |> -->
-<!--   dplyr::mutate(id = as.character(id)) -->
-
-<!-- # （任意）今後の再現用に保存 -->
-<!-- # readr::write_rds(dat_scored, here::here("analysis","outputs","dat_scored.rds")) -->
-
-<!-- fit_freq_so <- fit_frequency_season_occ( -->
-<!--   long         = long,        # 共変量入りロング（参加モデルで使ったもの） -->
-<!--   dat_raw      = dat_scored,  # q112 等を含むワイド（= あなたの dat_scored） -->
-<!--   out_dir      = OUT_DIR, -->
-<!--   quick        = FALSE, -->
-<!--   random_slope = FALSE,       # (1 + dish_type | district) にしたい時は TRUE -->
-<!--   trunc_zero   = FALSE,       # 季節×場面で 0 が自然に出る想定 → 0許容NBが無難 -->
-<!--   include_month= FALSE        # 季節・場面が主目的のため既定はOFF -->
-<!-- ) -->
-<!-- ``` -->
-
-<!-- ```{r wtp, include=FALSE} -->
-<!-- # 1) WTPデータ作成（初回だけでOK） -->
-<!-- source(here::here("analysis","R","45_make_wtp_data.R")) -->
-<!-- wtp_rds <- here::here("analysis","outputs","wtp_data.rds") -->
-<!-- if (!file.exists(wtp_rds)) { -->
-<!--   save_wtp_rds_from_excel(PATH_XLSX)  # 既に dat_scored がある場合は build_wtp_from_qs(dat_scored) でもOK -->
-<!-- } -->
-
-<!-- # 2) WTPモデル -->
-<!-- source(here::here("analysis","R","50_model_wtp.R")) -->
-<!-- wtp <- readr::read_rds(wtp_rds) -->
-<!-- fit_wtp <- fit_wtp_model( -->
-<!--   wtp, -->
-<!--   out_dir = OUT_DIR, -->
-<!--   family = "lognormal",        # 感度で "lognormal" も可 -->
-<!--   random_intercept = TRUE, -->
-<!--   quick = FALSE -->
-<!-- ) -->
-<!-- ``` -->
+```{r frequency, include = FALSE}
+# 40_model_frequency.R を読み込み
+
+source(here::here("analysis","R","40_model_frequency.R"))
+
+# dat_raw の用意：dat_scored があれば優先、無ければ dat を使用
+
+dat_raw <- if (exists("dat_scored")) dat_scored else dat
+
+# まず dry-run で構造チェック（任意）
+
+freq_check <- fit_frequency_season_occ(
+long = long, dat_raw = dat_raw, out_dir = OUT_DIR,
+quick = TRUE, dry_run = TRUE
+)
+print(freq_check)
+
+# 本番フィット（0許容NB・月は入れない・郡REは切片のみ）
+
+fit_freq <- fit_frequency_season_occ(
+long = long, dat_raw = dat_raw, out_dir = OUT_DIR,
+quick = QUICK, dry_run = FALSE,
+random_slope = FALSE,
+trunc_zero   = FALSE,
+include_month = FALSE
+)
+
+# 要約（ログ確認用）
+
+print(summary(fit_freq), digits = 2)
+
+```
+
+
+```{r wtp, include=FALSE}
+# 50_model_wtp.R を読み込み（変更なし）
+source(here::here("analysis","R","50_model_wtp.R"))
+
+# --- month（数値/英語月名/表記ゆれ）→ 1..12 に安全変換して season を作る補助 ---
+safe_month_to_num <- function(x) {
+  s <- tolower(trimws(as.character(x)))
+  # 既に数値なら採用
+  num <- suppressWarnings(as.numeric(s))
+  out <- ifelse(!is.na(num) & num >= 1 & num <= 12, as.integer(num), NA_integer_)
+  # 英語の省略/フル（jan..dec / january..december）
+  out[is.na(out)] <- {
+    idx_abb  <- match(s[is.na(out)], tolower(month.abb))
+    idx_name <- match(s[is.na(out)], tolower(month.name))
+    v <- ifelse(!is.na(idx_abb), idx_abb, idx_name)
+    # 一致しなければ parse_number（"2022-09" 等から 9 を拾う）
+    v2 <- suppressWarnings(readr::parse_number(s[is.na(out)]))
+    v <- ifelse(!is.na(v), v, v2)
+    as.integer(v)
+  }
+  # 範囲外は NA
+  out[!(out %in% 1:12)] <- NA_integer_
+  out
+}
+
+# --- WTP: q117–q327 を long にし、dish_type / youandme と season を付与 ---
+wtp_from_q <- function(d){
+  stopifnot(is.data.frame(d))
+  d <- d %>% dplyr::mutate(id = as.character(id))
+
+  # month→season（wet=5–10, dry=11–4）※monthが文字/因子でも安全
+  if (!"season" %in% names(d) && "month" %in% names(d)) {
+    m_num <- safe_month_to_num(d$month)
+    d <- d %>%
+      dplyr::mutate(
+        season = factor(dplyr::case_when(
+          is.na(m_num)    ~ NA_character_,
+          m_num %in% 5:10 ~ "wet",
+          TRUE            ~ "dry"
+        ), levels = c("wet","dry"))
+      )
+  }
+
+  # 価格キーとマップ
+  price_keys <- intersect(c("q117","q118","q217","q218","q317","q327"), names(d))
+  if (length(price_keys) == 0L) stop("q117,q118,q217,q218,q317,q327 が見つかりません。")
+
+  key_map <- tibble::tribble(
+    ~key,   ~dish_type,     ~youandme,
+    "q117", "chopped_fish", "self",
+    "q118", "chopped_fish", "others",
+    "q217", "sliced_fish",  "self",
+    "q218", "sliced_fish",  "others",
+    "q317", "pufferfish",   "self",
+    "q327", "pufferfish",   "others"
+  )
+
+  num_clean_999 <- function(x){
+    v <- suppressWarnings(as.numeric(x))
+    v[v == 999] <- NA_real_
+    v
+  }
+
+  carry <- intersect(c("id","district","gender","month","season","year","commune","village","wave"), names(d))
+
+  d %>%
+    dplyr::select(dplyr::any_of(c(carry, price_keys))) %>%
+    tidyr::pivot_longer(dplyr::all_of(price_keys), names_to = "key", values_to = "price") %>%
+    dplyr::left_join(key_map, by = "key") %>%
+    dplyr::mutate(
+      price    = num_clean_999(price),
+      dish_type= factor(dish_type, levels = c("chopped_fish","sliced_fish","pufferfish")),
+      youandme = factor(youandme,  levels = c("self","others"))
+    ) %>%
+    dplyr::filter(!is.na(price), price > 0, !is.na(dish_type), !is.na(youandme))
+}
+
+# dat から WTPデータ生成
+wtp_dat <- wtp_from_q(dat) %>%
+  dplyr::select(dplyr::any_of(c(
+    "price","district","gender","dish_type","youandme","season","month","id","wave"
+  )))
+
+# --- 診断：season が実際に入っているか（基礎集計）
+wtp_dat %>% dplyr::count(season, sort = TRUE) %>% print(n = 10)
+wtp_dat %>% dplyr::count(dish_type, youandme, season, sort = TRUE) %>% print(n = 30)
+
+# dry-run（50_model_wtp.R は無改変／quick=FALSE）
+wtp_check <- fit_wtp_model(
+  wtp_dat, out_dir = OUT_DIR,
+  family = "lognormal",
+  quick = FALSE, dry_run = TRUE,
+  backend = "cmdstanr"
+)
+print(wtp_check)
+
+# 本番フィット（quick=FALSE）
+fit_wtp <- fit_wtp_model(
+  wtp_dat, out_dir = OUT_DIR,
+  family = "lognormal",
+  random_intercept = TRUE,
+  quick = FALSE,
+  dry_run = FALSE,
+  backend = "cmdstanr",
+  cores = getOption("mc.cores", 4), threads_per_chain = 4
+)
+
+print(summary(fit_wtp), digits = 2)
+``` 
 
 ```{r sessioninfo, include=FALSE}
 # print session information
 sessionInfo()
 ```
-
-<!-- ```{r } -->
-<!-- # 重要度表（寄与率） -->
-<!-- # （結果出力チャンク） -->
-<!-- readr::read_csv(file.path(OUT_DIR, "pca_importance.csv")) |> -->
-<!--   dplyr::select(metric, tidyselect::any_of(c("PC1","PC2","PC3"))) |> -->
-<!--   gt::gt() |> -->
-<!--   gt::fmt_number(columns = where(is.numeric), decimals = 3) |> -->
-<!--   gt::tab_header(title = "PCA Importance (PC1–PC3)") -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- knitr::include_graphics(file.path(OUT_DIR, "ppc_participation_bars.png")) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- # 表を作成（例：OR表） -->
-<!-- library(gt) -->
-
-<!-- tbl_or <- readr::read_csv(file.path(OUT_DIR, "estimates_participation_OR.csv")) |> -->
-<!--   dplyr::select(term, OR, OR_l, OR_u) |> -->
-<!--   dplyr::mutate(dplyr::across(c(OR, OR_l, OR_u), ~ round(.x, 2))) |> -->
-<!--   gt::gt() |> -->
-<!--   gt::tab_header(title = "Odds Ratios (95% CI)") -->
-
-<!-- # --- Chrome/Chromium の検出（Windows/macOS/Linuxの代表パスをチェック）--- -->
-<!-- candidate_paths <- c( -->
-<!--   # Windows -->
-<!--   "C:/Program Files/Google/Chrome/Application/chrome.exe", -->
-<!--   "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe", -->
-<!--   # macOS -->
-<!--   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", -->
-<!--   # Linux -->
-<!--   "/usr/bin/google-chrome", -->
-<!--   "/usr/bin/chromium", -->
-<!--   "/snap/bin/chromium" -->
-<!-- ) -->
-<!-- found_path <- candidate_paths[file.exists(candidate_paths)][1] -->
-<!-- if (!is.na(found_path)) { -->
-<!--   options(chromote.chrome = found_path)  # chromote に教える -->
-<!-- } -->
-
-<!-- has_chrome <- any(nzchar(Sys.which(c("google-chrome","chromium","chrome")))) || -->
-<!--               !is.null(getOption("chromote.chrome")) -->
-
-<!-- # --- 保存：PNGはChromeがある時だけ。必ずHTML/RTFは出す --- -->
-<!-- if (isTRUE(has_chrome)) { -->
-<!--   ok_png <- try({ -->
-<!--     gt::gtsave(tbl_or, filename = file.path(OUT_DIR, "table_OR.png")) -->
-<!--     TRUE -->
-<!--   }, silent = TRUE) -->
-<!--   if (!isTRUE(ok_png)) { -->
-<!--     message("[gt] PNG保存に失敗。HTML/RTFへフォールバックします。") -->
-<!--   } -->
-<!-- } else { -->
-<!--   message("[gt] Chrome/Chromium が見つからないため PNG をスキップ。HTML/RTF を保存します。") -->
-<!-- } -->
-
-<!-- # フォールバック（常に実行） -->
-<!-- gt::gtsave(tbl_or, filename = file.path(OUT_DIR, "table_OR.html")) -->
-<!-- gt::gtsave(tbl_or, filename = file.path(OUT_DIR, "table_OR.rtf")) -->
-<!-- ``` -->
-
-<!-- ```{r } -->
-<!-- if (file.exists(file.path(OUT_DIR, "estimates_frequency_RR.csv"))) { -->
-<!--   readr::read_csv(file.path(OUT_DIR, "estimates_frequency_RR.csv")) |> -->
-<!--     dplyr::select(term, RR, RR_l, RR_u) |> -->
-<!--     dplyr::mutate(dplyr::across(RR:RR_u, ~ round(.x, 2))) |> -->
-<!--     gt::gt() |> -->
-<!--     gt::tab_header(title = "Rate Ratios (95% CI)") -->
-<!-- } -->
-
-
-<!-- ``` -->
 
